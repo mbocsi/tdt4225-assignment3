@@ -1,4 +1,5 @@
 from datetime import datetime
+from bson.objectid import ObjectId
 from typing import Any
 
 class User(dict):
@@ -9,7 +10,13 @@ class User(dict):
     def __init__(self,
                  id : str,
                  has_labels : bool,
-                 activities : list = []) -> None:
+                 activities : list[ObjectId] = []) -> None:
+        """
+        Initialize a User document
+        :param id: The id of the User
+        :param has_labels: Whether the user has labels for their activities
+        :param activites: A list of Activity IDs that the user has (Default: empty list)
+        """
         super().__setitem__('_id', id)
         super().__setitem__('has_labels', has_labels)
         super().__setitem__('activities', activities)
@@ -24,7 +31,7 @@ class User(dict):
 
 class ActivityDenorm(dict):
     """
-    A custom dictionary type for denormalized Activity reference for TrackPoints. Mostly for consistent typing.
+    A custom dictionary type for denormalizing the user field from the Activity reference for TrackPoints. Mostly for consistent typing.
     """
     KEYS = ('_id', 'user')
     def __setitem__(self, key : str, item : Any) -> None:
@@ -42,12 +49,21 @@ class Activity(dict):
     KEYS = ('_id', 'user', 'transportation_mode', 'start_date_time', 'end_date_time', 'trackpoints')
     DENORM_KEYS = ('_id', 'user')
     def __init__(self,
-                 id : int,
+                 id : ObjectId,
                  user : str,
                  transportation_mode : str = None,
                  start_date_time : datetime = None,
                  end_date_time : datetime = None,
-                 trackpoints : list = []) -> None:
+                 trackpoints : list[ObjectId] = []) -> None:
+        """
+        Initialize a Activity document
+        :param id: The ID of the Activity
+        :param user: The ID of the user associated with the activity (two-way reference)
+        :param transportation_mode: The transportation mode of the activity
+        :param start_date_time: The start time of the activity
+        :param end_date_time: The end time of the activity
+        :param trackpoints: The trackpoint IDs associated with this activity
+        """
         super().__setitem__('_id', id)
         super().__setitem__('user', user)
         super().__setitem__('transportation_mode', transportation_mode)
@@ -76,13 +92,23 @@ class TrackPoint(dict):
     """
     KEYS = ('_id', 'lat', 'lon', 'altitude', 'date_days', 'date_time', 'activity')
     def __init__(self,
-                 id : int,
+                 id : ObjectId,
                  lat : float,
                  lon : float,
                  altitude : int,
                  date_days : float,
                  date_time : datetime,
                  activity : ActivityDenorm) -> None:
+        """
+        Initializes a TrackPoint document
+        :param id: The ID of the track point
+        :param lat: The latitude of the track point
+        :param lon: The longitude of the track point
+        :param altitude: The altitude of the track point
+        :param date_days: The time in decimal number of days
+        :param date_time: The time in datetime format
+        :param activity: The activity associated with the track point (two-way reference with user field denormalized)
+        """
         super().__setitem__('_id', id)
         super().__setitem__('lat', lat)
         super().__setitem__('lon', lon)

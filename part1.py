@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 from datetime import datetime
 import logging
+from bson.objectid import ObjectId
 
 FORMAT = '%(asctime)s : %(levelname)s : %(message)s'
 logging.basicConfig(filename='part1.log', filemode='w', level=logging.INFO, format=FORMAT)
@@ -12,11 +13,6 @@ def main() -> None:
     """
     Main script for inserting all the data into the database
     """
-    global activity_counter
-    global trackpoint_counter
-    trackpoint_counter = 0
-    activity_counter = 0
-
     LABELED_IDS = []
     with open(Path('.') / 'dataset' / 'labeled_ids.txt', 'r') as f:
         lines = f.readlines()
@@ -35,11 +31,11 @@ def main() -> None:
 
     user_obj = None
     for root, dirs, files in os.walk("dataset/Data", topdown=True):
-        match len(Path(root).parts):
+        match len(Path(root).parts): # Dataset depth
             case 3: # User 
                 user = Path(root).parts[2]
                 user_obj = User(user, user in LABELED_IDS, activities=[])
-            case 4: # Activity
+            case 4: # Activities
                 activities = []
                 track_points = []
                 for file in files:
@@ -56,8 +52,7 @@ def main() -> None:
                         logging.debug(f'Skipped activity: {filename}! TOO BIG! (size={len(plt[6:])})')
                         continue
 
-                    activity = Activity(activity_counter, user, trackpoints=[])                                 # Create the Activity document
-                    activity_counter += 1
+                    activity = Activity(ObjectId(), user, trackpoints=[])                                 # Create the Activity document
 
                     first_line = plt[6].split(',')
                     start_date = first_line[-2]
@@ -90,7 +85,7 @@ def main() -> None:
                         lat, lon, _, alt, days, date, time = point.split(',')
                         time = time.replace('\n', '')
                         point_datetime = datetime.strptime(f"{date} {time}", '%Y-%m-%d %H:%M:%S')
-                        trackpoint = TrackPoint(id=trackpoint_counter,
+                        trackpoint = TrackPoint(id=ObjectId(),
                                                 lat=lat,
                                                 lon=lon,
                                                 altitude=alt,
@@ -100,7 +95,7 @@ def main() -> None:
                         activity['trackpoints'].append(trackpoint['_id'])   # Update the Activity document with trackpoints
                         track_points.append(trackpoint)                     # Insert trackpoint into list of trackpoints for insertion later
                         logging.debug(f"Created TrackPoint: {trackpoint}")
-                        trackpoint_counter += 1
+
                     activities.append(activity)                             # Insert activity into list of activites for insertion later
                     user_obj['activities'].append(activity['_id'])
                     logging.debug(f"Created Activity: {activity}")
