@@ -1,88 +1,77 @@
 from DbConnector import DbConnector
 from typing import Union, Any
 import logging
+from datetime import datetime
 
 class User(dict):
-    KEYS = ('id', 'has_labels', 'activites')
+    KEYS = ('_id', 'has_labels', 'activities')
     def __init__(self,
                  id : str,
                  has_labels : bool,
-                 activites : list = []) -> None:
-        self._dictionary = {'id': id,
-                            'has_labels': has_labels,
-                            'activities': activites}
+                 activities : list = []) -> None:
+        super().__setitem__('_id', id)
+        super().__setitem__('has_labels', has_labels)
+        super().__setitem__('activities', activities)
         
     def __setitem__(self, key : str, item : Any) -> None:
         if key not in User.KEYS:
             raise KeyError(f"The key {key} is not defined.")
-        self._dictionary[key] = item
-
-    def __getitem__(self, key : str) -> Any:
-        return self._dictionary[key]
+        super().__setitem__(key, item)
 
 class ActivityDenorm(dict):
-    KEYS = ('id', 'user')
+    KEYS = ('_id', 'user')
     def __setitem__(self, key : str, item : Any) -> None:
-        if key not in User.KEYS:
+        if key not in ActivityDenorm.KEYS:
             raise KeyError(f"The key {key} is not defined.")
-        self._dictionary[key] = item
-
-    def __getitem__(self, key : str) -> Any:
-        return self._dictionary[key]
+        super().__setitem__(key, item)
 
 class Activity(dict):
-    KEYS = ('id', 'user', 'transportation_mode', 'start_date_time', 'end_date_time', 'trackpoints')
-    DENORM_KEYS = ('id', 'user')
+    KEYS = ('_id', 'user', 'transportation_mode', 'start_date_time', 'end_date_time', 'trackpoints')
+    DENORM_KEYS = ('_id', 'user')
     def __init__(self,
                  id : int,
                  user : str,
                  transportation_mode : str = None,
-                 start_date_time : str = None,
-                 end_date_time : str = None,
+                 start_date_time : datetime = None,
+                 end_date_time : datetime = None,
                  trackpoints : list = []) -> None:
-        self._dictionary = {'id': id,
-                            'user': user,
-                            'transportation_mode': transportation_mode,
-                            'start_date_time': start_date_time,
-                            'end_date_time': end_date_time,
-                            'trackpoints': trackpoints}
+        super().__setitem__('_id', id)
+        super().__setitem__('user', user)
+        super().__setitem__('transportation_mode', transportation_mode)
+        super().__setitem__('start_date_time', start_date_time)
+        super().__setitem__('end_date_time', end_date_time)
+        super().__setitem__('trackpoints', trackpoints)
         
     def __setitem__(self, key : str, item : Any) -> None:
-        if key not in User.KEYS:
+        if key not in Activity.KEYS:
             raise KeyError(f"The key {key} is not defined.")
-        self._dictionary[key] = item
+        super().__setitem__(key, item)
 
-    def __getitem__(self, key : str) -> Any:
-        return self._dictionary[key]
-    
     def denorm(self) -> ActivityDenorm:
-        return {key : self._dictionary[key] for key in Activity.DENORM_KEYS}
+        return {key : super().__getitem__(key) for key in Activity.DENORM_KEYS}
 
 class TrackPoint(dict):
-    KEYS = ('id', 'lat', 'lon', 'altitude', 'date_days', 'date_time', 'activity')
+    KEYS = ('_id', 'lat', 'lon', 'altitude', 'date_days', 'date_time', 'activity')
     def __init__(self,
                  id : int,
                  lat : float,
                  lon : float,
                  altitude : int,
                  date_days : float,
-                 date_time : str,
+                 date_time : datetime,
                  activity : ActivityDenorm) -> None:
-        self._dictionary = {'id': id,
-                            'lat': lat,
-                            'lon': lon,
-                            'altitude': altitude,
-                            'date_days': date_days,
-                            'date_time': date_time,
-                            'activity': activity}
+        super().__setitem__('_id', id)
+        super().__setitem__('lat', lat)
+        super().__setitem__('lon', lon)
+        super().__setitem__('altitude', altitude)
+        super().__setitem__('date_days', date_days)
+        super().__setitem__('date_time', date_time)
+        super().__setitem__('activity', activity)
         
     def __setitem__(self, key : str, item : Any) -> None:
-        if key not in User.KEYS:
+        if key not in TrackPoint.KEYS:
             raise KeyError(f"The key {key} is not defined.")
-        self._dictionary[key] = item
-
-    def __getitem__(self, key : str) -> Any:
-        return self._dictionary[key]
+        super().__setitem__(key, item)
 
 class Database:
     def __init__(self) -> None:
@@ -101,11 +90,11 @@ class Database:
     
     def insert_documents(self, collection : str, data : Union[Union[Activity, User, TrackPoint], list[Union[Activity, User, TrackPoint]]]) -> bool:
         try:
-            collection = self.db[collection]
+            col = self.db[collection]
             if isinstance(data, dict):
-                collection.insert(data)
+                col.insert_one(data)
             else:
-                collection.insert_many(data)
+                col.insert_many(data)
         except Exception as e:
             logging.critical(f'An error occured in insert_documents() -> \n{e}')
             return False

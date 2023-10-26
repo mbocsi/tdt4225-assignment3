@@ -1,3 +1,5 @@
 .env
 dataset/
 __py*
+part1.log
+example.py

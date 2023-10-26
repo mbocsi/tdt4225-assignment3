@@ -5,18 +5,20 @@ from datetime import datetime
 import logging
 from icecream import ic
 
-FORMAT = '%(asctime)s : %(message)s'
+FORMAT = '%(asctime)s : %(levelname)s : %(message)s'
 logging.basicConfig(filename='part1.log', filemode='w', level=logging.INFO, format=FORMAT)
 
 def main() -> None:
     global activity_counter
+    global trackpoint_counter
+    trackpoint_counter = 0
     activity_counter = 0
     LABELED_IDS = []
     with open(Path('.') / 'dataset' / 'labeled_ids.txt', 'r') as f:
         lines = f.readlines()
         for line in lines:
             LABELED_IDS.append(line.replace('\n', ''))
-    logging.debug(LABELED_IDS)
+    logging.debug(f"Labeled IDs: {LABELED_IDS}")
 
     # Create the collections
     db = Database()
@@ -28,31 +30,30 @@ def main() -> None:
         quit()
 
     user_obj = None
-    activities = []
     for root, dirs, files in os.walk("dataset/Data", topdown=True):
         match len(Path(root).parts):
             case 3: # User 
                 user = Path(root).parts[2]
-                user_obj = User(user, user in LABELED_IDS)
+                user_obj = User(user, user in LABELED_IDS, activities=[])
             case 4: # Activity
-                activity = Activity(activity_counter, user_obj['id'])
-                trackpoints = []
+                activities = []
+                track_points = []
                 for file in files:
                     if file[-3:] != 'plt':
                         continue
 
-                    filename = file.split('.')[0] # Activity ID
+                    filename = file.split('.')[0]
                     plt = []
 
                     with open(Path(root) / file, 'r') as f:
                         plt = f.readlines()
 
                     if len(plt[6:]) > 2500: # Only insert activites with fewer than 2501 points
-                        logging.info(f'Skipped activity: {filename}! TOO BIG!')
+                        logging.debug(f'Skipped activity: {filename}! TOO BIG! (size={len(plt[6:])})')
                         continue
 
+                    activity = Activity(activity_counter, user, trackpoints=[])
                     activity_counter += 1
-                    activity = Activity(activity_counter, user)
 
                     first_line = plt[6].split(',')
                     start_date = first_line[-2]
@@ -75,33 +76,41 @@ def main() -> None:
                             if label_start == start_datetime and label_end == end_datetime:
                                 transportation = label[4]
                                 break
-                    
-                    logging.debug(f'Inserting: {(activity_counter, user, transportation, start_datetime, end_datetime)}')
 
                     # Insert the activity into the list
                     activity['transportation_mode'] = transportation
-                    activity['start_date_time'] = start_datetime.strftime('%Y-%m-%d %H:%M:%S')
-                    activity['end_date_time'] = end_datetime.strftime('%Y-%m-%d %H:%M:%S')
-                    activities.append(activity)
-                    logging.info(f'Inserted activity: {(activity_counter, user, transportation, start_datetime, end_datetime)}')
+                    activity['start_date_time'] = start_datetime # .strftime('%Y-%m-%d %H:%M:%S')
+                    activity['end_date_time'] = end_datetime # .strftime('%Y-%m-%d %H:%M:%S')
 
-                    track_points = []
                     for point in plt[6:]:
                         lat, lon, _, alt, days, date, time = point.split(',')
                         time = time.replace('\n', '')
-                        point_datetime = f"{date} {time}"
-                        track_points.append((activity_counter, lat, lon, alt, days, point_datetime))
-
-                    # Insert the trackpoints associated with the activity
-                    if not db.insert_trackpoints(track_points):
-                        quit()
-                    logging.info(f'Inserted trackpoints for activity: {activity_counter}')
+                        point_datetime = datetime.strptime(f"{date} {time}", '%Y-%m-%d %H:%M:%S')
+                        trackpoint = TrackPoint(id=trackpoint_counter,
+                                                lat=lat,
+                                                lon=lon,
+                                                altitude=alt,
+                                                date_days=days,
+                                                date_time=point_datetime,
+                                                activity=activity.denorm())
+                        activity['trackpoints'].append(trackpoint['_id'])
+                        track_points.append(trackpoint)
+                        logging.debug(f"Created TrackPoint: {trackpoint}")
+                        trackpoint_counter += 1
+                    activities.append(activity)
+                    user_obj['activities'].append(activity['_id'])
+                    logging.debug(f"Created Activity: {activity}")
+                db.insert_trackpoints(track_points)
+                db.insert_activities(activities)
+                db.insert_user(user_obj)
+                logging.info(f"Created User: {user_obj}")
                     
+def dropall() -> None:
+    db = Database()
+    db.drop_collection("User")
+    db.drop_collection("Activity")
+    db.drop_collection("TrackPoint")
+
 if __name__ == '__main__':
-    # main()
-    for root, dirs, files in os.walk("dataset/Data", topdown=True):
-        # for name in files:
-        #     print(os.path.join(root, name))
-        ic(root)
-        ic(dirs)
-        ic(files)
+    main()
+    # dropall()
