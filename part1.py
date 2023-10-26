@@ -1,4 +1,5 @@
-from Database import Database, User, Activity, TrackPoint
+from Database import Database
+from Schema import User, Activity, TrackPoint
 from pathlib import Path
 import os
 from datetime import datetime
