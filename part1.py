@@ -86,10 +86,10 @@ def main() -> None:
                         time = time.replace('\n', '')
                         point_datetime = datetime.strptime(f"{date} {time}", '%Y-%m-%d %H:%M:%S')
                         trackpoint = TrackPoint(id=ObjectId(),
-                                                lat=lat,
-                                                lon=lon,
-                                                altitude=alt,
-                                                date_days=days,
+                                                lat=float(lat),
+                                                lon=float(lon),
+                                                altitude=float(alt),
+                                                date_days=float(days),
                                                 date_time=point_datetime,
                                                 activity=activity.denorm()) # Create TrackPoint document
                         activity['trackpoints'].append(trackpoint['_id'])   # Update the Activity document with trackpoints
