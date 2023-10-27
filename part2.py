@@ -2,7 +2,7 @@ from Database import Database
 from datetime import datetime, timedelta
 from haversine import haversine, Unit
 from pprint import pprint
-from icecream import ic
+from icecream import ic # For debugging
 
 def q1(database : Database) -> None:
     db = database.db
@@ -16,7 +16,7 @@ def q2(database : Database) -> None:
     db = database.db
     results = db.User.aggregate([
         {
-            '$project': {'activities': {'$size': '$activities'}}
+            '$project': {'actcvities': {'$size': '$activities'}}
         },
         {
             '$group': {'_id': None, 'avgActivities': {'$avg': '$activities'}}
@@ -93,7 +93,7 @@ def q5(database : Database) -> None:
     pprint(list(results))
     print()
 
-def q6(database : Database) -> None:
+def q6a(database : Database) -> None:
     db = database.db
     results = db.Activity.aggregate([
         {
@@ -118,11 +118,13 @@ def q6(database : Database) -> None:
             }
         }
     ])
-    print('Question 6(a):')
+    print('Question 6(a):\n')
     print('Year with the greatest number of activities:')
     pprint(list(results)[0]['topYear'])
     print()
 
+def q6b(database : Database) -> None:
+    db = database.db
     results = db.Activity.aggregate([
         {
             '$group': 
@@ -152,7 +154,7 @@ def q6(database : Database) -> None:
             }
         }
     ])
-    print('Question 6(b):')
+    print('Question 6(b):\n')
     print('Year with the greatest number of hours recorded:')
     pprint(list(results)[0]['topYear'])
     print()
@@ -183,7 +185,7 @@ def q7(database : Database) -> None:
             prev_latlon = (lat, lon)
     
     print('Question 7:\n')
-    print('Total distance walked by user 112:')
+    print('Total distance walked by user 112 (kilometers):')
     pprint(distance_walked)
     print()
 
@@ -219,14 +221,11 @@ def q8(database : Database) -> None:
         prev_act = cur_act
         prev_user = cur_user
     
-    ic(users)
     results = []
     for key, value in users.items():
         results.append({'user': key, 'gained': int(value*0.3048)})
 
     results = sorted(results, key=lambda item: item['gained'], reverse=True)
-    
-    ic(results)
 
     print('Question 8:\n')
     print('Top 20 users who have gained the most altitude in meters (gross):')
@@ -318,7 +317,10 @@ def q11(database : Database) -> None:
     ])
 
     results = [(i['_id']['user'], i['transportation_mode']) for i in results]
+    print('Question 11:\n')
+    print('Most used transportation mode by user:')
     pprint(list(results))
+    print()
 
 if __name__ == '__main__':
     db = Database()
@@ -327,7 +329,8 @@ if __name__ == '__main__':
     q3(db)
     q4(db)
     q5(db)
-    q6(db)
+    q6a(db)
+    q6b(db)
     q7(db)
     q8(db)
     q9(db)
